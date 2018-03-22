@@ -30,12 +30,6 @@
 
 #include <asterisk.h>
 
-#ifdef ASTERISK_REGISTER_FILE
-ASTERISK_REGISTER_FILE()
-#else
-ASTERISK_FILE_VERSION("func_redis.c", "$Revision: 6 $")
-#endif
-
 #include <asterisk/module.h>
 #include <asterisk/channel.h>
 #include <asterisk/pbx.h>
