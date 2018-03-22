@@ -11,7 +11,7 @@
 
 CMAKE_SOURCE_DIR=$1
 
-ASTDATADIR=`cat /etc/asterisk/asterisk.conf | grep -v "^;" | grep astdatadir  | cut -d ">" -f2`
+ASTDATADIR="/var/lib/asterisk" # `cat /etc/asterisk/asterisk.conf | grep -v "^;" | grep astdatadir  | cut -d ">" -f2`
 
 DOC_FILE="$ASTDATADIR/documentation/thirdparty/func_redis-en_US.xml"
 
