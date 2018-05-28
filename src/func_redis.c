@@ -572,6 +572,7 @@ static int function_redis_get_hash(struct ast_channel *chan, const char *cmd,
     if (replyHaveError(reply)) {
         ast_log(AST_LOG_ERROR, "%s\n", reply->str);
         pbx_builtin_setvar_helper(chan, "REDIS_ERROR", reply->str);
+        pbx_builtin_setvar_helper(chan, "REDIS_HASH_EXISTS", "no");
         freeReplyObject(reply);
         return -1;
     } else {
@@ -584,10 +585,14 @@ static int function_redis_get_hash(struct ast_channel *chan, const char *cmd,
             snprintf(return_buffer, rtn_buff_len, "%s", value);
             pbx_builtin_setvar_helper(chan, "~ODBCFIELDS~", colnames);
             pbx_builtin_setvar_helper(chan, "REDIS_RESULT", value);
+            pbx_builtin_setvar_helper(chan, "REDIS_HASH_EXISTS", "yes");
 
             free(value);
             free(colnames);
+        } else {
+            pbx_builtin_setvar_helper(chan, "REDIS_HASH_EXISTS", "no");
         }
+        
         freeReplyObject(reply);
     }
     return 0;
