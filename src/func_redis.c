@@ -341,7 +341,7 @@ static char * get_reply_value_as_str(redisReply *reply){
     return value;
 }
 
-static void get_reply_value_for_hash(redisReply *reply, char *colnames, char *value) {
+static void get_reply_value_for_hash(redisReply *reply, char **colnames, char **value) {
     if (reply != NULL) {
         for(size_t i = 0; i < reply->elements; ++i) {
             char * old_value = NULL;
@@ -352,22 +352,27 @@ static void get_reply_value_for_hash(redisReply *reply, char *colnames, char *va
 
             if (i == 0) {
                 size_t value_sz = element_sz + 1;
-                colnames = (char*)malloc(value_sz);
-                snprintf(colnames, value_sz, "%s", element_value);
+                *colnames = (char*)malloc(value_sz);
+                snprintf(*colnames, value_sz, "%s", element_value);
+            }
+            else if (i == 1) {
+                size_t value_sz = element_sz + 1;
+                *value = (char*)malloc(value_sz);
+                snprintf(*value, value_sz, "%s", element_value);
             }
             else {
-                old_value = i % 2 == 0 ? colnames : value;
+                old_value = i % 2 == 0 ? *colnames : *value;
 
                 size_t old_value_sz = strlen(old_value);
                 size_t value_new_sz = old_value_sz + element_sz + 2;
 
                 if (i % 2 == 0) {
-                    colnames = (char*)malloc(value_new_sz);
-                    snprintf(colnames, value_new_sz, "%s,%s", old_value, element_value);
+                    *colnames = (char*)malloc(value_new_sz);
+                    snprintf(*colnames, value_new_sz, "%s,%s", old_value, element_value);
                 }
                 else {
-                    value = (char*)malloc(value_new_sz);
-                    snprintf(value, value_new_sz, "%s,%s", old_value, element_value);
+                    *value = (char*)malloc(value_new_sz);
+                    snprintf(*value, value_new_sz, "%s,%s", old_value, element_value);
                 }
 
                 free(old_value);
@@ -572,9 +577,9 @@ static int function_redis_get_hash(struct ast_channel *chan, const char *cmd,
     } else {
         char * value = NULL;
         char * colnames = NULL;
-
-        get_reply_value_for_hash(reply, colnames, value);
-
+        
+        get_reply_value_for_hash(reply, &colnames, &value);
+        
         if(value && colnames) {
             snprintf(return_buffer, rtn_buff_len, "%s", value);
             pbx_builtin_setvar_helper(chan, "~ODBCFIELDS~", colnames);
