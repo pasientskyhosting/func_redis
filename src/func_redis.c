@@ -126,7 +126,7 @@ void sdsfree(sds s) {
 			<ref type="function">REDIS_EXISTS</ref>
 		</see-also>
 	</function>
-    <function name="REDIS_HGET" language="en_US">
+    <function name="REDIS_HGETALL" language="en_US">
 		<synopsis>
 			Reads a hash from redis, return a HASH
 		</synopsis>
@@ -562,7 +562,7 @@ static int function_redis_get_hash(struct ast_channel *chan, const char *cmd,
 
     get_safe_redis_context_for_func_as(redis_context);
 
-    reply = redisLoggedCommand(redis_context,"HGET %s", args.key);
+    reply = redisLoggedCommand(redis_context,"HGETALL %s", args.key);
 
     if (replyHaveError(reply)) {
         ast_log(AST_LOG_ERROR, "%s\n", reply->str);
@@ -572,7 +572,7 @@ static int function_redis_get_hash(struct ast_channel *chan, const char *cmd,
     } else {
         char * value = NULL;
         char * colnames = NULL;
-        
+
         get_reply_value_for_hash(reply, colnames, value);
 
         if(value && colnames) {
@@ -589,7 +589,7 @@ static int function_redis_get_hash(struct ast_channel *chan, const char *cmd,
 }
 
 static struct ast_custom_function redis_hget_function = {
-        .name = "REDIS_HGET",
+        .name = "REDIS_HGETALL",
         .read = function_redis_get_hash,
         .read_max = 2,
 };
