@@ -126,6 +126,25 @@ void sdsfree(sds s) {
 			<ref type="function">REDIS_EXISTS</ref>
 		</see-also>
 	</function>
+    <function name="REDIS_HGET" language="en_US">
+		<synopsis>
+			Reads a hash from redis, return a HASH
+		</synopsis>
+		<syntax>
+			<parameter name="key" required="true" />
+		</syntax>
+		<description>
+			<para>This function will read from or write a value to the Redis database.  On a
+			read, this function returns the corresponding value from the database, or blank
+			if it does not exist.  Reading a database value will also set the variable
+			REDIS_RESULT.  If you wish to find out if an entry exists, use the REDIS_EXISTS
+			function.</para>
+		</description>
+		<see-also>
+			<ref type="function">REDIS_DELETE</ref>
+			<ref type="function">REDIS_EXISTS</ref>
+		</see-also>
+	</function>
  ***/
 
 #define REDIS_CONF "func_redis.conf"
@@ -267,11 +286,49 @@ static void redis_disconnect(void *data){
     return;
 }
 
+static void get_reply_value_for_hash(redisReply *reply, char *colnames, char *value) {
+    if (reply != NULL) {
+        for(size_t i = 0; i < reply->elements; ++i) {
+            char * old_value = NULL;
+            redisReply * element = reply->element[i];
+
+            char * element_value = get_reply_value_as_str(element);
+            size_t element_sz = (size_t)element->len;
+
+            if (i == 0) {
+                size_t value_sz = element_sz + 1;
+                colnames = (char*)malloc(value_sz);
+                snprintf(colnames, value_sz, "%s", element_value);
+            }
+            else {
+                old_value = i % 2 == 0 ? colnames : value;
+
+                size_t old_value_sz = strlen(old_value);
+                size_t value_new_sz = old_value_sz + element_sz + 2;
+
+                if (i % 2 == 0) {
+                    colnames = (char*)malloc(value_new_sz);
+                    snprintf(colnames, value_new_sz, "%s,%s", old_value, element_value);
+                }
+                else {
+                    value = (char*)malloc(value_new_sz);
+                    snprintf(value, value_new_sz, "%s,%s", old_value, element_value);
+                }
+
+                free(old_value);
+            }
+        }
+    }
+
+    return;
+}
+
 /*!
  * \brief Method for get an string from a redis reply, it is a helper method
  */
 static char * get_reply_value_as_str(redisReply *reply){
     char * value = NULL;
+
     if (reply != NULL){
         switch (reply->type){
             case REDIS_REPLY_NIL:
@@ -309,6 +366,7 @@ static char * get_reply_value_as_str(redisReply *reply){
                         free(old_value);
                     }
                 }
+
                 break;
             default:
                 break;
@@ -480,6 +538,62 @@ static int parse_redis_command_args(char *parse, unsigned int *argc, char *argv[
     return 1;
 }
 
+static int function_redis_get_hash(struct ast_channel *chan, const char *cmd, 
+                                char *parse, char *return_buffer, size_t rtn_buff_len)
+{
+    AST_DECLARE_APP_ARGS(args,
+                         AST_APP_ARG(key);
+    );
+
+    return_buffer[0] = '\0';
+
+    if (ast_strlen_zero(parse)) {
+        ast_log(AST_LOG_WARNING, "REDIS_HGET requires one argument REDIS_HGET(<key>)\n");
+        return -1;
+    }
+
+    AST_STANDARD_APP_ARGS(args, parse);
+
+    redisReply * reply = NULL;
+    if (args.argc != 1) {
+        ast_log(AST_LOG_WARNING, "REDIS_HGET requires one argument REDIS_HGET(<key>)\n");
+        return -1;
+    }
+
+    get_safe_redis_context_for_func_as(redis_context);
+
+    reply = redisLoggedCommand(redis_context,"HGET %s", args.key);
+
+    if (replyHaveError(reply)) {
+        ast_log(AST_LOG_ERROR, "%s\n", reply->str);
+        pbx_builtin_setvar_helper(chan, "REDIS_ERROR", reply->str);
+        freeReplyObject(reply);
+        return -1;
+    } else {
+        char * value = NULL;
+        char * colnames = NULL;
+        get_reply_value_for_hash(reply, colnames, value);
+
+        char * value = get_reply_value_as_str(reply);
+        if(value && colnames) {
+            snprintf(return_buffer, rtn_buff_len, "%s", value);
+            pbx_builtin_setvar_helper(chan, "~ODBCFIELDS~", colnames);
+            pbx_builtin_setvar_helper(chan, "REDIS_RESULT", value);
+
+            free(value);
+            free(colnames);
+        }
+        freeReplyObject(reply);
+    }
+    return 0;
+}
+
+static struct ast_custom_function redis_hget_function = {
+        .name = "REDIS_HGET",
+        .read = function_redis_get_hash,
+        .read_max = 2,
+};
+
 static int function_redis_command(struct ast_channel *chan, const char *cmd,
                                  char *parse, char *return_buffer, size_t rtn_buff_len)
 {
@@ -578,7 +692,7 @@ static int function_redis_write(struct ast_channel *chan, const char *cmd, char 
 {
     AST_DECLARE_APP_ARGS(args,
                          AST_APP_ARG(key);
-    );
+    );  
 
     if (ast_strlen_zero(parse)) {
         ast_log(AST_LOG_WARNING, "REDIS requires an argument, REDIS(<key>)=<value>\n");
@@ -895,6 +1009,7 @@ static int unload_module(void)
     res |= ast_custom_function_unregister(&redis_exists_function);
     res |= ast_custom_function_unregister(&redis_delete_function);
     res |= ast_custom_function_unregister(&redis_command_function);
+    res |= ast_custom_function_unregister(&redis_hget_function);
 
     return res;
 }
@@ -912,6 +1027,7 @@ static int load_module(void)
     res |= ast_custom_function_register(&redis_exists_function);
     res |= ast_custom_function_register(&redis_delete_function);
     res |= ast_custom_function_register(&redis_command_function);
+    res |= ast_custom_function_register(&redis_hget_function);
 
     return res;
 }
