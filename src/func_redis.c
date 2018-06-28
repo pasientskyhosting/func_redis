@@ -590,6 +590,7 @@ static int function_redis_get_hash(struct ast_channel *chan, const char *cmd,
             free(value);
             free(colnames);
         } else {
+            pbx_builtin_setvar_helper(chan, "~ODBCFIELDS~", "");
             pbx_builtin_setvar_helper(chan, "REDIS_HASH_EXISTS", "no");
         }
         
