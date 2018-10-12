@@ -54,7 +54,7 @@ struct sdshdr {
 };
 void sdsfree(sds s) {
     if (s == NULL) return;
-    free((char*)s - sizeof(struct sdshdr));
+    ast_free((char*)s - sizeof(struct sdshdr));
 }
 #endif
 
@@ -238,7 +238,7 @@ static int redis_connect(void * data)
     }
 
     memcpy(data, redis_context, sizeof(redisContext));
-    free(redis_context);
+    ast_free(redis_context);
     return 0;
 }
 
@@ -257,32 +257,32 @@ static void redis_disconnect(void *data){
             redis_context->reader->fn->freeObject(redis_context->reader->reply);
         if (redis_context->reader->buf != NULL)
             sdsfree(redis_context->reader->buf);
-        free(redis_context->reader);
+        ast_free(redis_context->reader);
     } // = redisReaderFree(redis_context->reader);
 
 
 #if HIREDIS_MAJOR == 0 && HIREDIS_MINOR > 12
     if (redis_context->tcp.host)
-        free(redis_context->tcp.host);
+        ast_free(redis_context->tcp.host);
     if (redis_context->tcp.source_addr)
-        free(redis_context->tcp.source_addr);
+        ast_free(redis_context->tcp.source_addr);
     if (redis_context->timeout)
-        free(redis_context->timeout);
+        ast_free(redis_context->timeout);
 #endif
 
 #if HIREDIS_MAJOR == 0 && HIREDIS_MINOR == 13 && HIREDIS_PATCH == 0
     if (redis_context->unix.path){
-        free(redis_context->unix.path);
+        ast_free(redis_context->unix.path);
     }
 #endif
 
 #if HIREDIS_MAJOR == 0 && HIREDIS_MINOR == 13 && HIREDIS_PATCH > 0
     if (redis_context->unix_sock.path){
-        free(redis_context->unix_sock.path);
+        ast_free(redis_context->unix_sock.path);
     }
 #endif
 
-    free(redis_context);
+    ast_free(redis_context);
     return;
 }
 
@@ -326,7 +326,7 @@ static char * get_reply_value_as_str(redisReply *reply){
                         size_t value_new_sz = old_value_sz + element_sz + 2; // 2  = comma + "\0"
                         value = (char*)malloc(value_new_sz);
                         snprintf(value, value_new_sz, "%s,%s", old_value, element_value);
-                        free(old_value);
+                        ast_free(old_value);
                     }
                 }
 
@@ -375,7 +375,7 @@ static void get_reply_value_for_hash(redisReply *reply, char **colnames, char **
                     snprintf(*value, value_new_sz, "%s,%s", old_value, element_value);
                 }
 
-                free(old_value);
+                ast_free(old_value);
             }
         }
     }
@@ -587,8 +587,8 @@ static int function_redis_get_hash(struct ast_channel *chan, const char *cmd,
             pbx_builtin_setvar_helper(chan, "REDIS_RESULT", value);
             pbx_builtin_setvar_helper(chan, "REDIS_HASH_EXISTS", "yes");
 
-            free(value);
-            free(colnames);
+            ast_free(value);
+            ast_free(colnames);
         } else {
             pbx_builtin_setvar_helper(chan, "~ODBCFIELDS~", "");
             pbx_builtin_setvar_helper(chan, "REDIS_HASH_EXISTS", "no");
@@ -639,7 +639,7 @@ static int function_redis_command(struct ast_channel *chan, const char *cmd,
         char* reply_str = get_reply_value_as_str(reply);
         if (reply_str){
             strncpy(return_buffer, reply_str, rtn_buff_len);
-            free(reply_str);
+            ast_free(reply_str);
         }else{
             pbx_builtin_setvar_helper(chan, "REDIS_ERROR", "Error in reply as str");
         }
@@ -691,7 +691,7 @@ static int function_redis_read(struct ast_channel *chan, const char *cmd,
         if(value) {
             snprintf(return_buffer, rtn_buff_len, "%s", value);
             pbx_builtin_setvar_helper(chan, "REDIS_RESULT", value);
-            free(value);
+            ast_free(value);
         }
         freeReplyObject(reply);
     }
@@ -977,7 +977,7 @@ static char *handle_cli_redis_show(struct ast_cli_entry *e, int cmd, struct ast_
                     char *value = get_reply_value_as_str(get_reply);
                     if (value) {
                         ast_cli(args->fd, "%-50s: %-25s\n", reply->element[i]->str, value);
-                        free(value);
+                        ast_free(value);
                     }
                 }
             }
