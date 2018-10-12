@@ -295,17 +295,17 @@ static char * get_reply_value_as_str(redisReply *reply){
     if (reply != NULL){
         switch (reply->type){
             case REDIS_REPLY_NIL:
-                value = (char*)malloc(4);
+                value = (char*)ast_malloc(4);
                 snprintf(value, 4, "%s", "nil");
                 break;
             case REDIS_REPLY_INTEGER:
-                value = (char*)malloc(LONG_LONG_LEN_IN_STR);
+                value = (char*)ast_malloc(LONG_LONG_LEN_IN_STR);
                 snprintf(value, LONG_LONG_LEN_IN_STR, "%lld", reply->integer);
                 break;
             case REDIS_REPLY_STRING:
             case REDIS_REPLY_STATUS:
             case REDIS_REPLY_ERROR:
-                value = (char*)malloc((size_t)reply->len + 1);
+                value = (char*)ast_malloc((size_t)reply->len + 1);
                 snprintf(value, (size_t)(reply->len) + 1, "%s", reply->str);
                 break;
             case REDIS_REPLY_ARRAY:
@@ -318,13 +318,13 @@ static char * get_reply_value_as_str(redisReply *reply){
 
                     if (i == 0){
                         size_t value_sz = element_sz + 1 ; // 1 = "\0"
-                        value = (char*)malloc(value_sz);
+                        value = (char*)ast_malloc(value_sz);
                         snprintf(value, value_sz, "%s", element_value);
                     }else{
                         old_value = value;
                         size_t old_value_sz = strlen(old_value);
                         size_t value_new_sz = old_value_sz + element_sz + 2; // 2  = comma + "\0"
-                        value = (char*)malloc(value_new_sz);
+                        value = (char*)ast_malloc(value_new_sz);
                         snprintf(value, value_new_sz, "%s,%s", old_value, element_value);
                         ast_free(old_value);
                     }
@@ -352,12 +352,12 @@ static void get_reply_value_for_hash(redisReply *reply, char **colnames, char **
 
             if (i == 0) {
                 size_t value_sz = element_sz + 1;
-                *colnames = (char*)malloc(value_sz);
+                *colnames = (char*)ast_malloc(value_sz);
                 snprintf(*colnames, value_sz, "%s", element_value);
             }
             else if (i == 1) {
                 size_t value_sz = element_sz + 1;
-                *value = (char*)malloc(value_sz);
+                *value = (char*)ast_malloc(value_sz);
                 snprintf(*value, value_sz, "%s", element_value);
             }
             else {
@@ -367,11 +367,11 @@ static void get_reply_value_for_hash(redisReply *reply, char **colnames, char **
                 size_t value_new_sz = old_value_sz + element_sz + 2;
 
                 if (i % 2 == 0) {
-                    *colnames = (char*)malloc(value_new_sz);
+                    *colnames = (char*)ast_malloc(value_new_sz);
                     snprintf(*colnames, value_new_sz, "%s,%s", old_value, element_value);
                 }
                 else {
-                    *value = (char*)malloc(value_new_sz);
+                    *value = (char*)ast_malloc(value_new_sz);
                     snprintf(*value, value_new_sz, "%s,%s", old_value, element_value);
                 }
 
